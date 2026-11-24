@@ -25,6 +25,7 @@ No install, no sign up. Works on desktop, tablet and phone.
 - [Tips to get faster](#tips-to-get-faster)
 - [Run it locally](#run-it-locally)
 - [How it works](#how-it-works)
+- [Security](#security)
 
 ---
 
@@ -170,7 +171,7 @@ npm run dev      # opens on http://localhost:5310
 | Command | What it does |
 |---|---|
 | `npm run dev` | Starts the dev server |
-| `npm test` | Checks the block maths and every card |
+| `npm test` | Checks the block maths, every card, and the online message checks |
 | `npm run build` | Builds the site into `dist/` |
 
 Every push to `main` builds the game and publishes it to GitHub Pages through `.github/workflows/deploy.yml`.
@@ -189,7 +190,23 @@ Built with TypeScript and Vite. No game engine and no image files: the blocks ar
 | `src/bots.ts` | The bots. They plan the fewest moves (including swaps), then play them at human speed with occasional slips. |
 | `src/board.ts` | The 3D blocks and all mouse, touch and keyboard input. Each move animates as a real quarter turn. |
 | `src/net.ts` | Online rooms over WebRTC using the free PeerJS service. |
+| `src/protocol.ts` | The online message format. Every message from the other player is checked and rebuilt here before the game uses it. |
 | `src/main.ts` | Menus, game modes, rounds, the bell rule and scoring. |
+
+---
+
+## Security
+
+The game has no server, no accounts and stores nothing about you. Online play still has to deal with a friend (or anyone with a modified copy of the game) sending strange data, so:
+
+- **Nothing from the other browser is trusted.** Every message is checked for type, range and shape, then rebuilt. Card patterns are recomputed locally rather than taken from the wire.
+- **Each side only accepts its own messages.** A guest cannot deal cards, award points or start a match; only the host can. The host judges every bell ring.
+- **Names are cleaned** of markup, control and direction-flipping characters and capped at 16 characters, so they cannot inject HTML.
+- **Room codes are random** from the browser's secure random generator, using letters and numbers that are hard to mix up (no 0/O or 1/I/L). A room takes exactly one friend; anyone else gets "That room is already full".
+- **Floods are dropped.** Messages beyond a human pace are ignored, and a connection that keeps flooding is closed. A joiner that never says hello is dropped after 8 seconds so it cannot hold the room.
+- **Content Security Policy.** The built site only runs its own scripts and only talks to the PeerJS broker and Google Fonts.
+
+`npm test` includes checks for all of the above. Found a problem? Please open an issue.
 
 ---
 

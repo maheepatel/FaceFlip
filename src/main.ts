@@ -5,7 +5,7 @@ import { makeDeck, type Card } from './cards.ts';
 import { bestPlan, solvePath, type Move } from './cube.ts';
 import { tileSVG, FACE_NAMES } from './art.ts';
 import { sfx, isMuted, setMuted } from './audio.ts';
-import { hostRoom, joinRoom, newCode, type Net, type Msg } from './net.ts';
+import { hostRoom, joinRoom, cleanCode, cleanName, CODE_LEN, type Net, type Msg } from './net.ts';
 
 type Mode = 'bots' | 'duo' | 'sprint' | 'attack' | 'zen' | 'online';
 
@@ -264,7 +264,7 @@ let matchOver: () => boolean = () => true;
 let guestHello: Extract<Msg, { t: 'hello' }> | null = null;
 
 const myName = () => { try { return localStorage.getItem('ff-name') || ''; } catch { return ''; } };
-const rand4 = () => Array.from({ length: 4 }, () => Math.floor(Math.random() * 24));
+const rand4 = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b % 24);
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`).slice(0, 16);
 
 function attachNet(net: Net) {
@@ -295,7 +295,7 @@ function hostStart(net: Net) {
   const gc = hello.color === settings.color ? (settings.color + 2) % 4 : hello.color;
   const start: StartMsg = {
     t: 'start', target: settings.target,
-    names: [esc(myName() || 'Host'), esc(hello.name || 'Friend')],
+    names: [cleanName(myName(), 'Host'), cleanName(hello.name, 'Friend')],
     colors: [settings.color, gc], boards: [rand4(), rand4()],
   };
   net.send(start);
@@ -323,7 +323,7 @@ function showLobby(prefill = '') {
         </section>
         <section class="lobby-box">
           <h3>Join a room</h3>
-          <form data-k="join" class="join-row"><input data-k="code" maxlength="5" placeholder="CODE" autocapitalize="characters" spellcheck="false" value="${esc(prefill)}"><button class="btn" type="submit">Join</button></form>
+          <form data-k="join" class="join-row"><input data-k="code" maxlength="5" placeholder="CODE" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Room code" value="${esc(prefill)}"><button class="btn" type="submit">Join</button></form>
           <p class="lobby-msg" data-k="jmsg"></p>
         </section>
       </div>
@@ -331,19 +331,18 @@ function showLobby(prefill = '') {
     </div></div>`);
   const $ = <T extends HTMLElement>(k: string) => ov.querySelector<T>(`[data-k=${k}]`)!;
   const nameIn = $<HTMLInputElement>('name');
-  const saveName = () => { try { localStorage.setItem('ff-name', nameIn.value.trim()); } catch { /* ignore */ } };
+  const saveName = () => { nameIn.value = cleanName(nameIn.value, ''); try { localStorage.setItem('ff-name', nameIn.value); } catch { /* ignore */ } };
   nameIn.addEventListener('change', saveName);
   const close = () => { cancel?.(); ov.remove(); history.replaceState(null, '', location.pathname); };
   ov.querySelector('.x')!.addEventListener('click', close);
 
-  ov.querySelector('[data-a=create]')!.addEventListener('click', () => {
+  const createRoom = () => {
     saveName();
     cancel?.();
-    const code = newCode();
     const box = $('host');
-    box.innerHTML = `<p class="lobby-msg">Opening room…</p>`;
-    cancel = hostRoom(code, {
-      onReady: () => {
+    box.innerHTML = `<p class="lobby-msg"><span class="dots"></span> Opening room…</p>`;
+    cancel = hostRoom({
+      onReady: (code) => {
         box.innerHTML = `<div class="room-code">${code}</div>
           <div class="share"><input readonly value="${link(code)}"><button class="btn ghost" data-a="copy">Copy link</button></div>
           <p class="lobby-msg wait"><span class="dots"></span> Waiting for your friend to join…</p>`;
@@ -360,21 +359,29 @@ function showLobby(prefill = '') {
         ov.remove();
         hostStart(net);
       },
-      onError: (msg) => { box.innerHTML = `<p class="lobby-msg bad">${msg}</p><button class="btn" data-a="create2">Try again</button>`; box.querySelector('[data-a=create2]')!.addEventListener('click', () => (ov.querySelector('[data-a=create]') as HTMLElement | null)?.click() ?? showLobbyRetry()); },
+      onError: (msg) => {
+        cancel?.(); cancel = null;
+        box.innerHTML = `<p class="lobby-msg bad"></p><button class="btn" data-a="create">Try again</button>`;
+        box.querySelector('p')!.textContent = msg;
+        box.querySelector('[data-a=create]')!.addEventListener('click', createRoom);
+      },
     });
-  });
-  const showLobbyRetry = () => { close(); showLobby(); };
+  };
+  ov.querySelector('[data-a=create]')!.addEventListener('click', createRoom);
 
+  const codeIn = $<HTMLInputElement>('code');
+  codeIn.addEventListener('input', () => { const c = cleanCode(codeIn.value); if (c !== codeIn.value) codeIn.value = c; });
   $('join').addEventListener('submit', (e) => {
     e.preventDefault();
     saveName();
-    const code = $<HTMLInputElement>('code').value.trim().toUpperCase();
+    const code = cleanCode($<HTMLInputElement>('code').value);
+    $<HTMLInputElement>('code').value = code;
     const msg = $('jmsg');
-    if (code.length !== 5) { msg.className = 'lobby-msg bad'; msg.textContent = 'Room codes have 5 characters.'; return; }
+    if (code.length !== CODE_LEN) { msg.className = 'lobby-msg bad'; msg.textContent = `Room codes have ${CODE_LEN} letters or numbers.`; return; }
     msg.className = 'lobby-msg wait';
     msg.innerHTML = '<span class="dots"></span> Connecting…';
     cancel?.();
-    cancel = joinRoom(code, { t: 'hello', name: nameIn.value.trim() || 'Friend', color: settings.color }, {
+    cancel = joinRoom(code, { t: 'hello', name: cleanName(nameIn.value, 'Friend'), color: settings.color }, {
       onJoined: (net) => { cancel = null; attachNet(net); msg.innerHTML = '<span class="dots"></span> Connected! Starting…'; },
       onError: (m) => { msg.className = 'lobby-msg bad'; msg.textContent = m; },
     });
@@ -545,7 +552,7 @@ function startMatch(mode: Mode, online?: { net: Net; start: StartMsg }) {
 
   function onHumanAction(p: Player, kind: 'move' | 'swap', a: number, b: Move | number) {
     if (!p.human) return;
-    if (net) net.send(kind === 'move' ? { t: 'mv', slot: a, mv: b as string } : { t: 'sw', a, b: b as number });
+    if (net) net.send(kind === 'move' ? { t: 'mv', slot: a, mv: b as Move } : { t: 'sw', a, b: b as number });
     p.stats.moves++;
     p.stats.roundMoves++;
     checkAuto(p);
@@ -842,6 +849,6 @@ home();
   const room = new URLSearchParams(location.search).get('room');
   if (room) {
     history.replaceState(null, '', location.pathname);
-    showLobby(room.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5));
+    showLobby(cleanCode(room));
   }
 }

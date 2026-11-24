@@ -351,3 +351,73 @@ kbd {
   .lobby-cols { grid-template-columns: 1fr; }
   .player.remote .board { --cs: 44px; }
 }
+
+/* ───────── fit every screen ───────── */
+/* bigger tap targets for the small text buttons */
+.link { min-height: 40px; padding: 0 8px; }
+
+/* short portrait phones (iPhone SE, small Androids): shrink to fit the height so nothing scrolls mid-swipe */
+@media (max-width: 640px) and (orientation: portrait) and (max-height: 740px) {
+  #app .game { gap: 6px; padding-top: 6px; padding-bottom: 8px; }
+  #app .card-slot { width: min(34vw, 20dvh); }
+  #app .player.human .board { --cs: min(24vw, 12dvh); }
+  #app .player.bot .board { --cs: min(6.5vw, 4dvh); }
+  #app .mode-duo .player.human .board { --cs: min(17vw, 9dvh); }
+  #app .card-name { font-size: 0.85rem; min-height: 1.2em; }
+}
+
+/* landscape phones: opponents left, card middle, your blocks right, all sized by height */
+@media (orientation: landscape) and (max-height: 560px) {
+  #app .game {
+    max-width: none; min-height: 100dvh; padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); gap: 6px 14px;
+    grid-template-columns: auto 1fr auto; grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'hud hud hud' 'drawer drawer drawer' 'opp center mine';
+    align-items: center;
+  }
+  #app .hud { grid-area: hud; }
+  #app .sides-drawer { grid-area: drawer; }
+  #app .opponents { grid-area: opp; flex-direction: column; flex-wrap: nowrap; gap: 6px; align-self: center; }
+  #app .center { grid-area: center; justify-self: center; align-self: center; grid-template-columns: auto auto auto; gap: 10px; margin: 0; }
+  #app .mine { grid-area: mine; flex-wrap: nowrap; gap: 10px; align-self: center; justify-content: flex-end; }
+  #app .player.bot { padding: 4px 6px 6px; gap: 3px; }
+  #app .player.bot .p-head { font-size: 0.78rem; }
+  #app .player.bot .p-status, #app .player.bot .pips { display: none; }
+  #app .player.bot .board { --cs: min(6.5dvh, 28px); }
+  #app .player.bot { display: grid; grid-template-columns: auto auto; grid-template-areas: 'head head' 'board foot'; column-gap: 6px; align-items: center; }
+  #app .player.bot .p-head { grid-area: head; }
+  #app .player.bot .p-board { grid-area: board; }
+  #app .player.bot .p-foot { grid-area: foot; }
+  #app .player.remote .board { --cs: min(11dvh, 48px); }
+  #app .deck-stack { width: 38px; }
+  #app .card-slot { width: min(46dvh, 28vw); }
+  #app .player.human { padding: 6px 10px 8px; }
+  #app .player.human .p-head { font-size: 0.9rem; }
+  #app .player.human .board { --cs: min(22dvh, 15vw, 112px); }
+  #app .mode-duo .card-slot { width: min(36dvh, 18vw); }
+  #app .mode-duo .player.human .board { --cs: min(20dvh, 8vw); }
+  #app .player.human .p-foot { gap: 10px; }
+}
+
+/* big desktops and TVs: use the extra room */
+@media (min-width: 1600px) and (min-height: 900px) {
+  #app .game { max-width: 1560px; }
+  #app .game:not(.mode-duo) .card-slot { width: clamp(240px, min(18vw, 30vh), 340px); }
+  #app .game:not(.mode-duo) .player.human .board { --cs: clamp(120px, min(8vw, 15vh), 160px); }
+  #app .player.bot .board { --cs: clamp(40px, 2.4vw, 56px); }
+  #app .player.remote .board { --cs: clamp(64px, 4vw, 88px); }
+  #app .mode-duo .player.human .board { --cs: clamp(100px, min(6.5vw, 14vh), 140px); }
+  #app .mode-duo .card-slot { width: clamp(216px, 14vw, 300px); }
+  body { font-size: 1.08rem; }
+}
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 720px) {
+  #app .deck { display: none; }
+  #app .card-slot { width: min(42dvh, 22vw); }
+  #app .player.human .board { --cs: min(22dvh, 11.5vw); }
+  #app .player.human .p-foot { gap: 6px; }
+  #app .mode-duo .player.human .board { --cs: min(18dvh, 7vw); }
+  #app .mode-duo .card-slot { width: min(30dvh, 15vw); }
+  #app .mode-duo .player.human { padding: 6px 8px 8px; column-gap: 6px; }
+  #app .mode-duo .bell { zoom: 0.8; }
+  #app .mode-duo .player.human .pips { max-width: 58px; }
+  #app .mode-duo .mine { gap: 6px; }
+}
