@@ -64,7 +64,7 @@ The rule stays the same as FaceFlip: these are folk and traditional games, so we
 | **Pen Fight** | Flick your pen to knock the other pen off the desk | Physics duel on a school desk, great for 1v1 online |
 | **Chidiya Udd** | Lift your finger only if the thing can fly | Fast reflex game, kids vs parents |
 | **Antakshari** | Sing a song starting with the last letter of the previous one | Turn timer and letter tracker for family voice calls |
-| **Pitthu style paper games: Dots and Boxes, Tic Tac Toe, Bingo** | Back-of-the-notebook games | Classic notebook paper look, ruled lines and pencil marks |
+| **Notebook games: Dots and Boxes, Tic Tac Toe, Bingo** | Back-of-the-notebook games | Classic notebook paper look, ruled lines and pencil marks |
 
 ### Board and table games
 | Game | What it is | How it works online |
